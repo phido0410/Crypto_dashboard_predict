@@ -234,6 +234,37 @@ def predict(symbol: Literal["BTC", "ETH", "BTCUSDT", "ETHUSDT"]):
     )
 
 
+@app.get("/debug_input/{symbol}")
+def debug_input(symbol: Literal["BTC", "ETH", "BTCUSDT", "ETHUSDT"]):
+    """
+    Trả về dữ liệu feature (gốc + đã scale) mà model LSTM dùng để dự báo.
+    Không chạy model, chỉ show input.
+    """
+    # Map giống /predict
+    sym_key = "BTC" if symbol.startswith("BTC") else "ETH"
+    sym_full = "BTCUSDT" if sym_key == "BTC" else "ETHUSDT"
+
+    # Lấy sequence feature và thời gian theo đúng logic dự báo
+    feat_seq, last_time, pred_time = get_last_sequence_features(sym_full)
+
+    # Tạo DataFrame features để dễ đọc + đảm bảo đúng thứ tự cột
+    X_df = pd.DataFrame(
+        feat_seq.values,
+        columns=["open", "high", "low", "volume", "rsi", "pct_change"],
+    )
+
+    # Scale bằng scaler_X giống trong /predict
+    scaler_X = SCALERS_X[sym_key]
+    X_scaled = scaler_X.transform(X_df)
+
+    return {
+        "symbol": sym_full,
+        "seq_len": SEQ_LEN,
+        "last_close_time": last_time.isoformat(),
+        "predicted_time": pred_time.isoformat(),
+        "features": X_df.to_dict(orient="records"),        # dữ liệu gốc dùng làm input
+        "features_scaled": X_scaled.tolist(),              # dữ liệu sau khi scale, đưa vào LSTM
+    }
 
 @app.websocket("/ws/price/{symbol}")
 async def websocket_price(websocket: WebSocket, symbol: str):
