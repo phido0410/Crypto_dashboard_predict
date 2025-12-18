@@ -12,19 +12,14 @@ API_BASE = "http://127.0.0.1:8000"
 st.set_page_config(page_title="Crypto LSTM Dashboard", layout="wide")
 st.title("  Crypto Dashboard")
 
-# ================== SIDEBAR ==================
 symbol = st.sidebar.selectbox("Chọn cặp tiền điện tử", ["BTCUSDT", "ETHUSDT"])
 limit = st.sidebar.slider("Số nến lịch sử", min_value=50, max_value=500, value=50, step=50)
 
 st.sidebar.markdown("---")
 st.sidebar.write("Chạy API FastAPI: `uvicorn main:app --reload` trước khi mở dashboard.")
-
-# ================== SESSION STATE ==================
 if "predictions" not in st.session_state:
     st.session_state["predictions"] = {}  # lưu kết quả predict theo từng symbol
 
-
-# ================== HÀM GỌI API ==================
 def fetch_history(sym: str, limit: int = 200) -> pd.DataFrame:
     url = f"{API_BASE}/history/{sym}"
     r = requests.get(url, params={"limit": limit}, timeout=10)
@@ -52,8 +47,6 @@ def fetch_prediction(sym: str) -> dict:
     r.raise_for_status()
     return r.json()
 
-
-# ================== VẼ FIG ==================
 def build_figure(
     df: pd.DataFrame,
     current_price: float,
@@ -85,8 +78,6 @@ def build_figure(
             )
         ]
     )
-
-    # ===== 1. ĐƯỜNG CURRENT PRICE (xanh dương, nét liền) =====
     fig.add_hline(
         y=current_price,
         line_width=2.5,
@@ -110,7 +101,6 @@ def build_figure(
         borderpad=2,
     )
 
-    # ===== 2. ĐƯỜNG PREDICTED PRICE (cam, nét đứt) =====
     if predicted_price is not None:
         fig.add_hline(
             y=predicted_price,
@@ -147,8 +137,6 @@ def build_figure(
 
     return fig
 
-
-# ================== NÚT HÀNH ĐỘNG ==================
 col_btn1, col_btn2 = st.columns(2)
 with col_btn1:
     st.button("Cập nhật chart")
@@ -159,7 +147,6 @@ with col_btn2:
 if predict_clicked:
     st.session_state["predictions"][symbol] = fetch_prediction(symbol)
 
-# ================== VẼ CHART + METRICS ==================
 df = fetch_history(symbol, limit=limit)
 current_price = fetch_price(symbol)
 
@@ -184,10 +171,7 @@ with col_chart:
 
 with col_info:
     st.subheader("Thông tin hiện tại")
-
-    # Thông tin hiện tại luôn hiển thị, không phụ thuộc đã dự báo hay chưa
     st.metric("Giá hiện tại (API /price)", f"{current_price:,.2f}")
-
     st.markdown("---")
     st.subheader("Thông tin dự báo")
 
@@ -195,8 +179,6 @@ with col_info:
         # Chưa ấn nút dự báo
         st.write("Chưa dự báo. Bấm nút **“Dự báo nến hôm nay”** để chạy")
     else:
-        # ===== Thông tin lấy trực tiếp từ backend /predict =====
-        # last_close_price & last_close_time đã được set phía trên từ pred_info
         st.metric(
             "Giá close dùng để dự báo (từ backend)",
             f"{last_close_price:,.2f}",
@@ -205,8 +187,6 @@ with col_info:
             "Ngày của giá close dùng để dự báo (UTC):",
             last_close_time.strftime("%Y-%m-%d"),
         )
-
-        # ===== Logic hôm nay / ngày mai (UTC) cho predicted_time =====
         today_utc = datetime.now(timezone.utc).date()
         pred_date = predicted_time.date()
 
@@ -218,13 +198,10 @@ with col_info:
             pred_label = "hôm qua (UTC)"
         else:
             pred_label = pred_date.strftime("%Y-%m-%d")
-
-        # ===== Hiển thị giá dự báo =====
         st.metric(
             "Giá dự báo (giá đóng cửa nến kế tiếp)",
             f"{predicted_price:,.2f}",
             delta=f"{predicted_price - last_close_price:,.2f}",
         )
-
         st.write("**Last close time (UTC):**", last_close_time)
         st.write("**Predicted time (UTC):**", predicted_time, f"→ {pred_label}")

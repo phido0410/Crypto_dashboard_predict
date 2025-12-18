@@ -33,7 +33,7 @@ app = FastAPI(title="Crypto LSTM API")
 
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size, dropout=0.3):
+    def __init__(self, input_size, hidden_size, num_layers, output_size, dropout):
         super(LSTMModel, self).__init__()
         self.lstm = nn.LSTM(
             input_size, hidden_size, num_layers, batch_first=True, dropout=dropout
@@ -47,10 +47,10 @@ class LSTMModel(nn.Module):
 
 
 INPUT_SIZE = 6
-HIDDEN_SIZE = 128
+HIDDEN_SIZE = 256
 NUM_LAYERS = 2
 OUTPUT_SIZE = 1
-DROPOUT = 0.3
+DROPOUT = 0.4
 
 MODELS = {}
 SCALERS_X = {}
